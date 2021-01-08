@@ -1,0 +1,181 @@
+<div class="jumbotron" style="border:1px solid; margin:10px;">
+      <div class="row">
+      <div class="col-sm-6" style="border-right:1px solid; padding-left:40px;">
+     
+              <div id="show-register" >
+      <form role="form" autocomplete="false" name="reg-form" id="reg-form" action="confirmReg">
+        <fieldset>
+        <legend style="padding:10px;border:1px solid;">Register</legend>
+        <div class="form-group">
+    <label for="comp-name">Company Name</label>
+    <input type="text" name="comp-name" class="form-control" id="comp-name" placeholder="Company Name" />
+  </div>
+  <div class="form-group">
+    <label for="comp-address">Address</label>
+    <textarea name="comp-address" id="comp-address" class="form-control" rows="5" cols="30"></textarea>
+  </div>
+  <div class="form-group">
+    <label for="comp-email">Email Address</label>
+    <input type="email" name="comp-email" class="form-control" id="comp-email" placeholder="Enter email" />
+    <div id="loading"></div>
+    </div>
+        
+  <div class="form-group" >
+    <label for="comp-phone">Phone Number</label>
+    <input type="text" name="comp-phone" class="form-control" id="comp-phone" placeholder="Enter Phone" />
+  </div>
+  <div class="form-group">
+    <label for="contact">Contact Person</label>
+    <input type="text" name="contact" class="form-control" id="contact" placeholder="Contact Person" />
+  </div>
+  <div class="form-group">
+    <label for="comp-password">Password</label>
+    <input type="password" name="comp-password" class="form-control" id="comp-password" placeholder="Password" />
+  </div>
+  <div class="form-group">
+    <label for="conf-password">Confirm Password</label>
+    <input type="password" name="conf-password" class="form-control" id="conf-password" placeholder="Confirm Password" />
+  </div>
+   <div class="form-group">
+   <label for="conf-password">Enter the numbers in the box below</label>
+    <div style="padding:5px; border:1px solid; width:100px;" id="captchaload"></div><a href="Javascript:;" id="reloadCapt">Reload</a><br>
+    <input type="hidden" name="confirm-captcha" id="confirm-captcha" /><input type="text" name="captcha" class="form-control" id="captcha"  />
+    
+  </div>
+  
+    <button type="submit" class="btn btn-default">Submit</button>
+  </fieldset>
+  </form>
+
+      </div>
+            
+        </div>
+        <div class="col-sm-6">
+        <div id='show-login'>
+        <form role="form">
+        <fieldset>
+        <legend style="padding:10px;border:1px solid;">Login</legend>
+  <div class="form-group">
+    <label for="exampleInputEmail1">Email address</label>
+    <input type="email" name="login-email" class="form-control" id="login-email" placeholder="Enter email" />
+  </div>
+  <div class="form-group">
+    <label for="exampleInputPassword1">Password</label>
+    <input type="password" name="login-pass" class="form-control" id="login-pass" placeholder="Password" />
+  </div>
+  <button type="submit" class="btn btn-default">Submit</button> <a href="Javascript:;" id="forgot">Forgot Password</a>
+  </fieldset>
+  </form>
+  </div>
+  <div id="show-forg-pass" style="display:none;">
+<form role="form">
+        <fieldset>
+        <legend style="padding:10px;border:1px solid;">Forgot Password</legend>
+  <div class="form-group">
+    <label for="email">Email address</label>
+    <input type="email" name="forg-email" class="form-control" id="forg-email" placeholder="Enter email" />
+  </div>
+    <button type="submit" class="btn btn-default">Submit</button> <a href="Javascript:;" id="login">Login</a>
+  </fieldset>
+  </form>
+      </div>
+
+
+        </div>
+        </div>
+      </div>
+      <script type="text/javascript">
+	  $(document).ready(function(){
+		  $("#forgot").click(function(){
+			  $("#show-forg-pass").show(1000);
+			  $("#show-login").hide(1000);
+			  });
+			  $("#register").click(function(){
+			  $("#show-register").show(1000);
+			  $("#show-login").hide(1000);
+			  $("#show-forg-pass").hide(1000);
+			  });
+			  $("#login").click(function(){
+			   $("#show-login").show(1000);
+			  $("#show-forg-pass").hide(1000);
+			  });
+			  
+			  $("#comp-email").change(function(){
+			  	$("#loading").html('<img src="<?=base_url('images/preload.gif')?>" />');
+				$("#email_check").show();		
+				var email=$("#comp-email").val();
+				url=<?php echo "'" . site_url('welcome/checkEmail') . "'"; ?> + '/' + email;
+				$.ajax({
+					url:url,
+					dataType:'text',
+					type:'GET',
+					success: function(data){
+						$("#loading").empty();
+						if(data='1'){
+					alert('Email already in use');
+									document.getElementById('comp-email').value='';
+									document.getElementById('comp-email').focus();			
+							}
+						
+							
+						},
+					error: function(data){
+						console.log(data);
+						alert('Error '+data);
+						alert('Error checking email');
+						
+						}
+					});  	
+			  	});
+			  	//loads captcha
+			  	//function loadCaptcha(){
+			  	url2=<?php echo "'" . site_url('welcome/randomNum') . "'"; ?>;
+			  	$.ajax({
+					url:url2,
+					dataType:'text',
+					type:'GET',
+					success: function(data){
+							$("#captchaload").empty();
+							$("#captchaload").append(data);	
+							document.getElementById('confirm-captcha').value=2	
+							},
+						error: function(data){
+											
+						}
+							
+						});
+					
+					$("#reloadCapt").click(function(){
+						url22=<?php echo "'" . site_url('welcome/randomNum') . "'"; ?>;
+			  	$.ajax({
+			  		url:url22,
+					dataType:'text',
+					type:'GET',
+					success: function(data){
+							$("#captchaload").empty();
+							$("#captchaload").append(data);	
+							document.getElementById('confirm-captcha').value=2;	
+							},
+						error: function(data){
+												
+						}
+							
+						});
+						});
+					
+						
+			  	
+			  
+		  });	  
+	  </script>
+	  <script  type="text/javascript">
+ var frmvalidator = new Validator("reg-form");
+  frmvalidator.addValidation("comp-name","req","Enter Company Name");
+  frmvalidator.addValidation("comp-address","req","Email address is required");
+  frmvalidator.addValidation("comp-email","req","Enter Email");
+    frmvalidator.addValidation("comp-email","email","Enter a valid email address");
+    frmvalidator.addValidation("comp-phone","req","Enter Phone Number");
+  frmvalidator.addValidation("comp-phone","numeric","Invalid Phone Number");
+frmvalidator.addValidation("contact","req","Enter Contact Person");
+frmvalidator.addValidation("password","req","Enter Password");
+   </script>

@@ -1,0 +1,57 @@
+<div class="jumbotron" style="border:1px solid; margin:10px;">
+      <div class="row">
+      <div class="col-sm-6" style="border-right:1px solid; padding-left:40px;">
+            
+        <div id="show-register">
+      <form role="form" autocomplete="false" name="reg-form" id="reg-form" action="confirmReg">
+        <fieldset>
+        <legend style="padding:10px;border:1px solid;">Register</legend>
+        <div class="form-group">
+    <label for="comp-name">Company Name</label>
+    <?=$comp-name?>
+    <input type="hidden" value='<?=$comp_name?>' name="comp-name" class="form-control" id="comp-name"  />
+  </div>
+  <div class="form-group">
+    <label for="comp-address">Address</label>
+    <?=$comp-address?>
+<input type="hidden" value='<?=$comp-address?>' name="comp-address" class="form-control" id="comp-address"  />
+  </div>
+  <div class="form-group">
+    <label for="comp-email">Email Address</label>
+    <input type="hidden" value='<?=$comp-email?>' name="comp-email" class="form-control" id="comp-email" placeholder="Enter email" />
+    
+    </div>
+        
+  <div class="form-group" >
+    <label for="comp-phone">Phone Number</label>
+    <?=$comp-phone?>
+    <input type="hidden" value='<?=$comp-phone?>' name="comp-phone" class="form-control" id="comp-phone" placeholder="Enter Phone" />
+  </div>
+  <div class="form-group">
+    <label for="contact">Contact Person</label>
+    <?=$contact?>
+    <input type="hidden" value='<?=$contact?>' name="contact" class="form-control" id="contact" placeholder="Contact Person" />
+  </div>
+  <div class="form-group">
+  <?=$comp-password?>
+    <label for="comp-password">Password</label>
+    <input type="hidden" value='<?=$comp-password?>' name="comp-password" class="form-control" id="comp-password" placeholder="Password" />
+  </div>
+  
+  
+    <button type="submit" class="btn btn-default">Submit</button> 
+  </fieldset>
+  </form>
+
+      </div>
+            
+
+        </div>
+        <div class="col-sm-6" style="padding:10px;">
+<p>        This is a platform designed for organisations to make bulk payments for their employees </p>
+<p>Kindly register to create a profile to be able to make the payments</p>
+<p>For further enquiries, please send a mail to info@nse.org.ng</p>
+        </div>
+        </div>
+      </div>
+      

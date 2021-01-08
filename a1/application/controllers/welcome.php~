@@ -1,0 +1,1156 @@
+<?php
+
+if (!defined('BASEPATH'))
+    exit('No direct script access allowed');
+
+class Welcome extends CI_Controller {
+
+    /**
+     * Index Page for this controller.
+     *
+     * Maps to the following URL
+     * 		http://example.com/index.php/welcome
+     * 	- or -  
+     * 		http://example.com/index.php/welcome/index
+     * 	- or -
+     * Since this controller is set as the default controller in 
+     * config/routes.php, it's displayed at http://example.com/
+     *
+     * So any other public methods not prefixed with an underscore will
+     * map to /index.php/welcome/<method_name>
+     * @see http://codeigniter.com/user_guide/general/urls.html
+     */
+    public function __construct() {
+        error_reporting(E_ALL ^ (E_NOTICE | E_WARNING));
+        parent::__construct();
+        $this->load->model('site');
+        $this->load->library('form_validation');
+        session_start();
+    }
+
+    public function index() {
+
+        $this->load->view('header');
+        $this->load->view('body');
+        $this->load->view('footer');
+    }
+
+    //fellowship by application
+    public function application() {
+        $data['countries'] = $this->site->getAll("nationality");
+        $data['identity'] = $this->site->getAll("identity");
+        $data['employment'] = $this->site->getAll("employmenttype");
+        $data['categories'] = $this->site->getAll("categories");
+        $data['contributionFees'] = $this->site->getAll("contributionFees");
+        $this->load->view('header');
+        $this->load->view('application', $data);
+        $this->load->view('footer');
+    }
+//get fee amount
+        public function getAmount($fee_id){
+            $data['email']=$this->site->getAny("contributionFees",$fee_id,"id","amount");
+            $this->load->view('emailCheck', $data);
+        }
+        public function payContribution(){
+            $data['contribution']=$this->site->getAll("contributionFees");
+            $data['fee']=$this->input->post('fee');
+            $data['amount']=$this->input->post('amount');
+            $this->load->view('headerProfile');
+            $this->load->view('leftNav');
+            $this->load->view('contributionsConfirm',$data);
+            $this->load->view('footer');
+        }
+        
+        public function insertContribution(){
+            $profileID=$_SESSION['id'];
+            $transName=$this->input->post('transName');
+            $transNo="3061".$this->randomString(8);
+            $transAmount=$this->input->post('amount');
+            $transStatus='Pending';
+            $transDate=date('Y-m-d');
+            $transYear=date('Y');
+            $paymentMode='Online';
+            $feeItemId=$this->input->post('fee');
+            $insert=$this->site->insertTransact($profileID,$transName,$transNo,$transAmount,$transStatus,$transDate,$transYear,$paymentMode,$feeItemId);
+            if($insert){
+               
+            redirect('welcome/paychoice/'.$insert, 'refresh');
+            }
+        }
+        public function paychoice($transId){
+            $data['profile']=$this->site->getMany('members',$_SESSION['id'],'profileID');
+            $data['trans']=$this->site->getMany('transaction',$transId,'transID');
+            $this->load->view('headerProfile');
+            $this->load->view('leftNav');
+            $this->load->view('paychoice',$data);
+            $this->load->view('footer');
+            
+        }
+        public function contributionReport(){
+            $data['contribution']=$this->site->getAllContribution($_SESSION['id']);
+            $this->load->view('headerProfile');
+            $this->load->view('leftNav');
+            $this->load->view('contributionReport',$data);
+            $this->load->view('footer');
+                  
+        }
+    //pay with visa
+    public function payVisa() {
+        $price = $this->input->post('price');
+        $description = $this->input->post('description');
+        $transRefNo = $_SESSION['trnxId'];
+        $checkTrans = $this->site->checkTrans($transRefNo);
+        $name = $_SESSION['surname'] . " " . $_SESSION['othernames'];
+        $phone = $_SESSION['phone'];
+        $email = $_SESSION['email'];
+        $amount = $price;
+        $date = date('Y-m-d');
+
+        if (!$checkTrans) {
+            //get stud_id
+            $stud_id = $this->site->getAny("fellow_mem", $transRefNo, "auth_num", "id");
+            $this->site->insertTrans($name, $phone, $email, $amount, $date, $transRefNo, $stud_id);
+        }
+        $data['surname'] = $_SESSION['surname'];
+        $data['othernames'] = $_SESSION['othernames'];
+        $data['phone'] = $_SESSION['phone'];
+        $data['email'] = $_SESSION['email'];
+        $data['amount'] = $amount;
+        $data['fees'] = $this->site->fees($type = 1);
+        $this->load->view('header');
+        $this->load->view('ups', $data);
+        $this->load->view('footer');
+    }
+
+    public function payment() {
+        $price = $this->input->post('price');
+        $description = $this->input->post('description');
+        $transRefNo = $_SESSION['trnxId'];
+        $checkTrans = $this->site->checkTrans($transRefNo);
+        $name = $_SESSION['surname'] . " " . $_SESSION['othernames'];
+        $phone = $_SESSION['phone'];
+        $email = $_SESSION['email'];
+        $amount = $price;
+        $date = date('Y-m-d');
+
+        if (!$checkTrans) {
+            //get stud_id
+            $stud_id = $this->site->getAny("applicants", $transRefNo, "auth_num", "id");
+            $this->site->insertTrans($name, $phone, $email, $amount, $date, $transRefNo, $stud_id);
+        }
+        $merchantId = '1509328648353';
+        $serviceTypeId = '1509328543428';
+        $orderId = $transRefNo;
+        $api_key = '2314515';
+        $responseurl = 'http://www.nipng.com/updateTrans.php';
+
+        $str = $merchantId . $serviceTypeId . $transRefNo . $amount . $responseurl . $api_key;
+        $data['merchantId'] = $merchantId;
+        $data['serviceTypeId'] = $serviceTypeId;
+        $data['orderId'] = $orderId;
+        $data['api_key'] = $api_key;
+        $data['responseurl'] = $responseurl;
+        $data['hash'] = sha1($str);
+        $data['surname'] = $_SESSION['surname'];
+        $data['othernames'] = $_SESSION['othernames'];
+        $data['phone'] = $_SESSION['phone'];
+        $data['email'] = $_SESSION['email'];
+        $data['amount'] = $amount;
+        if ($date <= '2014-10-10') {
+            $data['fees'] = $this->site->fees(1);
+        } else {
+            $data['fees'] = $this->site->fees(2);
+        }
+        $this->load->view('header');
+        $this->load->view('quickteller', $data);
+        $this->load->view('footer');
+    }
+
+    public function payQuickteller() {
+        $price = $this->input->post('price');
+        $description = $this->input->post('description');
+        $transRefNo = $_SESSION['trnxId'];
+        $checkTrans = $this->site->checkTrans($transRefNo);
+        $name = $_SESSION['surname'] . " " . $_SESSION['othernames'];
+        $phone = $_SESSION['phone'];
+        $email = $_SESSION['email'];
+        $amount = $price;
+        $date = date('Y-m-d');
+
+        if (!$checkTrans) {
+            //get stud_id
+            $stud_id = $this->site->getAny("applicants", $transRefNo, "auth_num", "id");
+            $this->site->insertTrans($name, $phone, $email, $amount, $date, $transRefNo, $stud_id);
+        }
+        $data['surname'] = $_SESSION['surname'];
+        $data['othernames'] = $_SESSION['othernames'];
+        $data['phone'] = $_SESSION['phone'];
+        $data['email'] = $_SESSION['email'];
+        $data['amount'] = $amount;
+        $data['fees'] = $this->site->fees($_SESSION['grade']);
+        $this->load->view('header');
+        $this->load->view('quickteller', $data);
+        $this->load->view('footer');
+    }
+
+    //confirms application
+    public function confirmApply() {
+        $this->form_validation->set_rules('title', 'Select Title', 'req');
+        $this->form_validation->set_rules('surname', 'Enter Surname', 'req');
+        $this->form_validation->set_rules('firstname', 'Enter First Name', 'req');
+        $this->form_validation->set_rules('sex', 'Select Sex', 'req');
+        $this->form_validation->set_rules('nat', 'Select Country', 'req');
+        $this->form_validation->set_rules('dob', 'Select date of Birth', 'req');
+        $this->form_validation->set_rules('place', 'Place of Birth', 'req');
+        $this->form_validation->set_rules('home', 'Enter Home Address', 'req');
+        $this->form_validation->set_rules('email', 'Enter Email Address', 'req|valid_email');
+        $this->form_validation->set_rules('phone', 'Enter Phone Number', 'req|numeric');
+        $this->form_validation->set_rules('identity', 'Select Identification Type', 'req');
+        $this->form_validation->set_rules('identityNo', 'Enter Identity Card No', 'req');
+        $this->form_validation->set_rules('idIssue', 'Select Issue Date', 'req');
+        $this->form_validation->set_rules('idExpire', 'Select Expiry Date', 'req');
+        $this->form_validation->set_rules('employment', 'Select Employment Status', 'req');
+        $this->form_validation->set_rules('employer', 'Enter Employer Name', 'req');
+        $this->form_validation->set_rules('employerPhone', 'Enter Employer Phone', 'req|numeric');
+        $this->form_validation->set_rules('employerEmail', 'Enter Employer Email', 'req|valid_email');
+        $this->form_validation->set_rules('nok', 'Enter Next of Kin', 'req');
+        $this->form_validation->set_rules('nokAddress', 'Next of Kin Address', 'req');
+        $this->form_validation->set_rules('nokPhone', 'NoK Phone', 'req|numeric');
+        $this->form_validation->set_rules('dependent', 'Enter No of Dependent', 'req|numeric');
+        $this->form_validation->set_rules('agree', 'You must agree', 'req');
+        $this->form_validation->set_rules('passport', 'Select Passport Photograph', 'req');
+        $this->form_validation->set_rules('category', 'Select Membership Category', 'req');
+
+
+
+
+        if ($this->form_validation->run() == FALSE) {
+            $this->application();
+        } else {
+            $data['title'] = $this->input->post('title');
+            $data['surname'] = $this->input->post('surname');
+            $data['firstname'] = $this->input->post('firstname');
+            $data['othernames'] = $this->input->post('othernames');
+            $data['sex'] = $this->input->post('sex');
+            $data['nat'] = $this->input->post('nat');
+            $data['dob'] = $this->input->post('dob');
+            $data['place'] = $this->input->post('place');
+            $data['home'] = $this->input->post('home');
+            $data['email'] = $this->input->post('email');
+            $data['phone'] = $this->input->post('phone');
+            $data['maiden'] = $this->input->post('maiden');
+            $data['identity'] = $this->input->post('identity');
+            $data['identityNo'] = $this->input->post('identityNo');
+            $data['idIssue'] = $this->input->post('idIssue');
+            $data['idExpiry'] = $this->input->post('idExpiry');
+            $data['employment'] = $this->input->post('employment');
+            $data['employer'] = $this->input->post('employer');
+            $data['employerPhone'] = $this->input->post('employerPhone');
+            $data['employerEmail'] = $this->input->post('employerEmail');
+            $data['employerAddress'] = $this->input->post('employerAddress');
+            $data['nok'] = $this->input->post('nok');
+            $data['nokAddress'] = $this->input->post('nokAddress');
+            $data['nokPhone'] = $this->input->post('nokPhone');
+            $data['dependent'] = $this->input->post('dependent');
+            $data['agree'] = $this->input->post('agree');
+            $data['category'] = $this->input->post('category');
+            $data['contType']=$this->input->post('contType');
+            $data['country'] = $this->site->getAny("nationality", $this->input->post('nat'), "nationalityID", "nationalityName");
+            $name = $this->randomString(8);
+            $data['passport'] = $name;
+            //$this->uploadsApply($this->input->post('passport'),$name);      
+            $config['upload_path'] = 'application/views/uploads/';
+            $config['file_name'] = $name . ".jpg";
+            $config['allowed_types'] = 'jpg';
+            $this->load->library('upload', $config);
+            $this->upload->initialize($config);
+            $this->upload->set_allowed_types('*');
+            $data['upload_data'] = '';
+            if (!$this->upload->do_upload('passport')) {
+                //$data = array('msg' => $this->upload->display_errors());
+            } else { //else, set the success message
+                //$data = array('msg' => "Upload success!");
+                //$data['upload_data'] = $this->upload->data();
+            }
+            $data['countries'] = $this->site->getAll("nationality");
+            $data['identitys'] = $this->site->getAll("identity");
+            $data['employments'] = $this->site->getAll("employmenttype");
+            $data['categories'] = $this->site->getAll("categories");
+            $data['contributionFees'] = $this->site->getAll("contributionFees");
+            $this->load->view('header');
+            $this->load->view('confirmApply', $data);
+            $this->load->view('footer');
+        }
+    }
+
+    //updates records
+    public function updateRecords() {
+        $stud_id = $_SESSION['id'];
+        //agm
+        //personal details
+        $surname = $this->input->post('surname');
+        $othernames = $this->input->post('othernames');
+        $home = $this->input->post('home');
+        $email = $this->input->post('email');
+        $phone = $this->input->post('phone');
+        $dob = $this->input->post('dob');
+        $nat = $this->input->post('nat');
+        $grade = $this->input->post('grade');
+        $sec = $this->input->post('sec');
+        $sec_cert = $this->input->post('sec_cert');
+        $grad_year_sec = $this->input->post('grad_year_sec');
+        $deg1 = $this->input->post('deg1');
+        $deg1_cert = $this->input->post('deg1_cert');
+        $grad_year_deg1 = $this->input->post('grad_year_deg1');
+        $deg2 = $this->input->post('deg2');
+        $deg2_cert = $this->input->post('deg2_cert');
+        $grad_year_deg2 = $this->input->post('grad_year_deg2');
+        $update = $this->site->updateApply($surname, $othernames, $home, $email, $phone, $dob, $nat, $grade, $sec, $sec_cert, $grad_year_sec, $deg1, $deg1_cert, $grad_year_deg1, $deg2, $deg2_cert, $grad_year_deg2, $_SESSION['id']);
+
+        if ($update) {
+            $data['type'] = 1;
+            $data['msg'] = "Records updated successfully";
+            $this->load->view('header2');
+            $this->load->view('result2', $data);
+            $this->load->view('footer');
+        }
+    }
+
+    //inserts fellow
+    public function insertApply() {
+        $title = $this->input->post('title');
+        $surname = $this->input->post('surname');
+        $firstname = $this->input->post('firstname');
+        $othernames = $this->input->post('othernames');
+        $gender = $this->input->post('sex');
+        $nat = $this->input->post('nat');
+        $dob = $this->input->post('dob');
+        $place = $this->input->post('place');
+        $home = $this->input->post('home');
+        $email = $this->input->post('email');
+        $phone = $this->input->post('phone');
+        $maiden = $this->input->post('maiden');
+        $identity = $this->input->post('identity');
+        $identityNo = $this->input->post('identityNo');
+        $idIssue = $this->input->post('idIssue');
+        $idExpiry = $this->input->post('idExpiry');
+        $employment = $this->input->post('employment');
+        $employer = $this->input->post('employer');
+        $employerPhone = $this->input->post('employerPhone');
+        $employerEmail = $this->input->post('employerEmail');
+        $employerAddress = $this->input->post('employerAddress');
+        $nok = $this->input->post('nok');
+        $nokAddress = $this->input->post('nokAddress');
+        $nokPhone = $this->input->post('nokPhone');
+        $dependent = $this->input->post('dependent');
+        $agree = $this->input->post('agree');
+        $category = $this->input->post('category');
+        $passport = $this->input->post('passport');
+        $year = date('Y');
+        $date = date('Y-m-d');
+        $contType=$this->input->post('contType');
+
+
+        //$string = "NIP";
+        //$authNum = str_shuffle($string) . $this->randomString(8);
+        $insert_id = $this->site->insertApply($title, $surname, $firstname, $othernames, $gender, $nat, $dob, $place, $home, $email, $phone, $maiden, $identity, $identityNo, $idIssue, $idExpiry, $employment, $employer, $employerEmail, $employerPhone, $employerAddress, $nok, $nokAddress, $nokPhone, $dependent, $agree, $category, $passport, $year, $date, $category,$contType);
+        //echo $insert_id;
+        if ($insert_id) {
+            //send mail
+
+            $this->site->insertEmployment($insert_id, $employment, $employer, $employerPhone, $employerAddress, $employerEmail);
+
+            redirect('welcome/success', 'refresh');
+        }
+    }
+
+    public function updateProfile() {
+        $title = $this->input->post('title');
+        $surname = $this->input->post('surname');
+        $firstname = $this->input->post('firstname');
+        $othernames = $this->input->post('othernames');
+        $gender = $this->input->post('sex');
+        $nat = $this->input->post('nat');
+        $dob = $this->input->post('dob');
+        $place = $this->input->post('place');
+        $home = $this->input->post('home');
+        $email = $this->input->post('email');
+        $phone = $this->input->post('phone');
+        $maiden = $this->input->post('maiden');
+        $identity = $this->input->post('identity');
+        $identityNo = $this->input->post('identityNo');
+        $idIssue = $this->input->post('idIssue');
+        $idExpiry = $this->input->post('idExpiry');
+        $employment = $this->input->post('employment');
+        $employer = $this->input->post('employer');
+        $employerPhone = $this->input->post('employerPhone');
+        $employerEmail = $this->input->post('employerEmail');
+        $employerAddress = $this->input->post('employerAddress');
+        $nok = $this->input->post('nok');
+        $nokAddress = $this->input->post('nokAddress');
+        $nokPhone = $this->input->post('nokPhone');
+        $dependent = $this->input->post('dependent');
+        $agree = $this->input->post('agree');
+        $category = $this->input->post('category');
+        $passport = $this->input->post('passport');
+        $year = date('Y');
+        $date = date('Y-m-d');
+
+
+        //$string = "NIP";
+        //$authNum = str_shuffle($string) . $this->randomString(8);
+        $update = $this->site->update($_SESSION['id'], $title, $surname, $firstname, $othernames, $gender, $nat, $dob, $place, $home, $email, $phone, $maiden, $identity, $identityNo, $idIssue, $idExpiry, $employment, $employer, $employerEmail, $employerPhone, $employerAddress, $nok, $nokAddress, $nokPhone, $dependent, $agree, $category, $passport, $category);
+        $update2 = $this->site->updateEmployment($_SESSION['id'], $employment, $employer, $employerPhone, $employerAddress, $employerEmail);
+        if ($update && $update2) {
+            $_SESSION['email'] = $email;
+            redirect('welcome/success23', 'refresh');
+        }
+    }
+
+    public function changePassport() {
+        $this->load->view('header');
+        $this->load->view('changePassport');
+    }
+
+    public function uploadPassport() {
+        $id=$_SESSION['id'];
+        $name = $this->randomString(8);
+        $data['passport'] = $name;
+        //$this->uploadsApply($this->input->post('passport'),$name);      
+        $config['upload_path'] = 'application/views/uploads/';
+        $config['file_name'] = $name . ".jpg";
+        $config['allowed_types'] = 'jpg';
+        $this->load->library('upload', $config);
+        $this->upload->initialize($config);
+        $this->upload->set_allowed_types('*');
+        $data['upload_data'] = '';
+        if (!$this->upload->do_upload('passport')) {
+            //$data = array('msg' => $this->upload->display_errors());
+        } else { //else, set the success message
+        //update database
+        $update=$this->site->updatePassport($id,$name);
+        if($update){
+            $this->load->view('header');
+            $this->load->view('success233');
+        }
+            //$data = array('msg' => "Upload success!");
+            //$data['upload_data'] = $this->upload->data();
+        }
+    }
+
+    public function success() {
+        $this->load->view('header');
+        $this->load->view('success');
+    }
+
+    public function success23() {
+        $this->load->view('header');
+        $this->load->view('success23');
+    }
+
+    //displays payment page
+    public function fees() {
+        $type = 1;
+        $grade = $_SESSION['grade'];
+        $data['surname'] = $_SESSION['surname'];
+        $data['othernames'] = $_SESSION['othernames'];
+        $data['email'] = $_SESSION['email'];
+        $data['phone'] = $_SESSION['phone'];
+        $data['trxn'] = $_SESSION['trnxId'];
+        $date = date('Y-m-d');
+        if ($date <= '2014-10-10') {
+            $data['fees'] = $this->site->fees(1);
+        } else {
+            $data['fees'] = $this->site->fees(2);
+        }
+        $this->load->view('header');
+        $this->load->view('fees', $data);
+        $this->load->view('footer');
+    }
+
+    public function register() {
+        $this->load->view('headerReg');
+        $this->load->view('register');
+        $this->load->view('footer');
+    }
+
+    public function checkEmail($email) {
+        $data['email'] = $this->site->checkEmail($email);
+        $this->load->view('emailCheck', $data);
+    }
+
+    public function enrollmentProcedure() {
+        $this->load->view('procedures');
+    }
+
+    public function checkReport() {
+        $data['transaction'] = $this->site->report($_SESSION['id']);
+        // $this->load->view('header2');
+        $this->load->view('checkReport', $data);
+        //$this->load->view('footer');
+    }
+
+    public function report() {
+        $data['transaction'] = $this->site->report($_SESSION['id']);
+        $this->load->view('header2');
+        $this->load->view('report', $data);
+        $this->load->view('footer');
+    }
+
+    public function searchReport() {
+        $from = $this->input->post('from');
+        $to = $this->input->post('to');
+        $data['transaction'] = $this->site->reportSearch($_SESSION['id'], $from, $to);
+        $this->load->view('header2');
+        $this->load->view('report', $data);
+        $this->load->view('footer');
+    }
+
+    //generates random numbers for captcha
+    public function randomNum() {
+       $_SESSION['rand'] = '';
+       $num = rand(1000000, 9000000);
+       $_SESSION['rand'] = $num;
+       $data['num'] = $num;
+       $this->load->view('random', $data);
+    }
+
+    public function confirmReg() {
+        $this->load->library('form_validation');
+        $compName = $this->input->post('comp-name');
+        $compAddress = $this->input->post('comp-address');
+        $compEmail = $this->input->post('comp-email');
+        $compPhone = $this->input->post('comp-phone');
+        $contact = $this->input->post('contact');
+        $compPassword = $this->input->post('comp-password');
+        $confPassword = $this->input->post('conf-password');
+        $captcha = $this->input->post('captcha');
+        $confCaptcha = $this->input->post('conf-captcha');
+
+        $this->form_validation->set_rules('comp-name', 'Enter Company Name', 'required');
+        $this->form_validation->set_rules('comp-address', 'Enter Company Address', 'required');
+        $this->form_validation->set_rules('comp-email', 'Email Address', 'required|valid_email');
+        $this->form_validation->set_rules('comp-phone', 'Company Phone', 'required|numeric');
+        $this->form_validation->set_rules('contact', 'Contact Person', 'required');
+        $this->form_validation->set_rules('comp-password', 'Password', 'required|matches[conf-password]');
+        $this->form_validation->set_rules('captcha', 'Captcha', 'required|matches[confirm-captcha]');
+
+        if ($this->form_validation->run() == FALSE) {
+            $this->register();
+        } else {
+            $data['compName'] = $compName;
+            $data['compAddress'] = $compAddress;
+            $data['compEmail'] = $compEmail;
+            $data['compPhone'] = $compPhone;
+            $data['contact'] = $contact;
+            $data['password'] = $compPassword;
+            $this->load->view('header');
+            $this->load->view('confirmDetails', $data);
+            $this->load->view('footer');
+        }
+    }
+
+    public function insertRegDetails() {
+        $compName = $this->input->post('comp-name');
+        $compAddress = $this->input->post('comp-address');
+        $compEmail = $this->input->post('comp-email');
+        $compPhone = $this->input->post('comp-phone');
+        $contact = $this->input->post('contact');
+        $date = date('Y-m-d');
+        $compPassword = md5($this->input->post('comp-password'));
+        $insert = $this->site->createProfile($compName, $compAddress, $compEmail, $compPhone, $contact, $compPassword, $date);
+        if ($insert) {
+            //send mail with details
+            $data['type'] = '1';
+            $data['msg'] = 'Profile Created Successfully,login to continue';
+            $data['url'] = 'index';
+            $this->load->view('header');
+            $this->load->view('result', $data);
+            $this->load->view('footer');
+        } else {
+            $data['type'] = '0';
+            $data['msg'] = 'Error creating profile';
+            $data['url'] = 'index';
+            $this->load->view('header');
+            $this->load->view('result', $data);
+            $this->load->view('footer');
+        }
+    }
+
+    //updates profile
+    public function updateRegDetails() {
+        $compName = $this->input->post('comp-name');
+        $compAddress = $this->input->post('comp-address');
+        $compEmail = $this->input->post('comp-email');
+        $compPhone = $this->input->post('comp-phone');
+        $contact = $this->input->post('contact');
+        $date = date('Y-m-d');
+        $compId = $_SESSION['id'];
+        $compPassword = md5($this->input->post('comp-password'));
+        $update = $this->site->updateProfile($compName, $compAddress, $compEmail, $compPhone, $contact, $compPassword, $compId);
+        if ($update) {
+            //send mail with details
+            $data['type'] = '1';
+            $data['msg'] = 'Profile Successfully Updated';
+            $data['url'] = 'profile';
+            $this->load->view('result', $data);
+        } else {
+            $data['type'] = '0';
+            $data['msg'] = 'Error updating profile';
+            $data['url'] = 'profile';
+            $this->load->view('result', $data);
+        }
+    }
+
+    //displays checkout
+    public function checkOut() {
+        if (!empty($_SESSION['transid'])) {
+            $transId = $_SESSION['transid'];
+        } else {
+            $transid = '0000';
+        }
+        if (!empty($_SESSION['id'])) {
+            $compId = $_SESSION['id'];
+        } else {
+            $compId = 'o90bw2';
+        }
+        /* $this->load->library('pagination');
+          $config['base_url'] = site_url('home/checkOut');
+          $config['total_rows'] = $this->site->checkoutCount($transId,$compId);
+          $config['per_page'] = 15;
+          $config["uri_segment"] = 3;
+          $data['sno']=$config['per_page'];
+          $page = ($this->uri->segment(3)) ? $this->uri->segment(3) : 0; */
+
+        //$data['chart']=$this->home_model->dispChart($config['per_page'],$page);
+        //$this->pagination->initialize($config);
+        //$data['pages']=$this->pagination->create_linkss
+        $data['amount'] = $this->site->dispTotalAmount($transId, $compId);
+        $this->load->view('header2');
+        $this->load->view('checkout', $data);
+        $this->load->view('footer');
+    }
+
+    public function emptyCart() {
+        $transId = $_SESSION['transid'];
+        $empty = $this->site->emptyCart($transId);
+        if ($empty) {
+            $_SESSION['transid'] = '';
+            $data['type'] = 1;
+            $data['msg'] = 'Cart Successfully emptied';
+            $data['url'] = 'transaction';
+            $this->load->view('result', $data);
+        }
+    }
+
+    //process checkout
+    public function processCheckout() {
+        if (!empty($_SESSION['transid'])) {
+            $transId = $_SESSION['transid'];
+            //retrieve transaction details
+            $details = $this->site->retrieveTransDetails($transId);
+            $amount = 0;
+            $check = $this->site->checkTransaction($transId);
+            $myAmount = $this->site->checkAmount($transId);
+            if (!$check) {
+                foreach ($details as $row) {
+                    $nseregno = $row['nseregno'];
+                    $date = date('Y-m-d');
+                    $total = $row['amount'];
+                    $status = 'NOT PAID';
+                    $item_id = $row['item_id'];
+                    //$year=$this->site->getCurrentYear();
+                    $year = 2014;
+                    //inserts into transaction table
+                    //this checks if there the transaction has been captured before       
+                    $insert = $this->site->insertTransaction($nseregno, $date, $total, $status, $transId, $year);
+                    $amount+=$row['amount'];
+                }
+
+
+
+                if ($insert) {
+                    //retrieve trans_details again
+                    $date = date('Y-m-d');
+                    $transDetails = $this->site->retrieveTransDetailsAgain($transId, $date);
+                    foreach ($transDetails as $row) {
+                        $nseregno = $row['nseregno'];
+                        $item_id = $row['item_id'];
+                        $name = $this->site->itemNames($item_id);
+                        $amount = $row['amount'];
+
+                        $this->site->updateTransDetails($name, $amount, $nseregno, $transId);
+                        //retrieves the item name
+                    }
+                }
+
+                // $data['profile']=$this->site->profile($_SESSION['id']);
+                $names = $this->site->getAny('company', $_SESSION['id'], "id", "mycomp_name");
+                $n = explode(" ", $names);
+                $data['surname'] = $n[0];
+                $data['firstname'] = $n[1];
+                $data['othernames'] = $n[2];
+                $data['member_email'] = $this->site->getAny('company', $_SESSION['id'], "id", "mycomp_email");
+                $data['phone'] = $this->site->getAny('company', $_SESSION['id'], "id", "mycomp_phone");
+                $data['valid_user'] = $_SESSION['id'];
+                $data['amount'] = $myAmount;
+                $data['trxn'] = $transId;
+                $this->load->view('header2');
+                $this->load->view('chooseMode', $data);
+                $this->load->view('footer');
+            } else {
+                $names = $this->site->getAny('company', $_SESSION['id'], "id", "mycomp_name");
+                $n = explode(" ", $names);
+                $data['surname'] = $n[0];
+                $data['firstname'] = $n[1];
+                $data['othernames'] = $n[2];
+                $data['member_email'] = $this->site->getAny('company', $_SESSION['id'], "id", "mycomp_email");
+                $data['phone'] = $this->site->getAny('company', $_SESSION['id'], "id", "mycomp_phone");
+                $data['valid_user'] = $_SESSION['id'];
+                $data['amount'] = $myAmount;
+                $data['trxn'] = $transId;
+                $data['surname'] = $this->site->getName($_SESSION['id']);
+                $this->load->view('header2');
+                $this->load->view('chooseMode', $data);
+                $this->load->view('footer');
+            }
+        } else {
+            echo "Session Time out, please login to continue";
+            redirect('welcome/index', 'refresh');
+        }
+    }
+
+    //Recovers password
+    public function recoverPassword() {
+        $email = $this->input->post('forg-email');
+        $check = $this->site->checkEmail($email);
+        $password = rand(10000, 900000);
+        if ($check) {
+            //resets password
+            $update = $this->site->resetPassword($email, md5($password));
+            // send new password
+            $data['type'] = '1';
+            $data['msg'] = 'Password has been reset and sent to your email';
+            $data['url'] = 'index';
+            $this->load->view('header');
+            $this->load->view('result', $data);
+            $this->load->view('footer');
+        } else {
+            $data['msg'] = 'Invalid Password Recovery Email';
+            $data['url'] = 'index';
+            $this->load->view('header');
+            $this->load->view('body', $data);
+            $this->load->view('footer');
+        }
+    }
+
+    public function login() {
+        $surname = $this->input->post('surname');
+        $coopNo = $this->input->post('coopNo');
+        //echo $coopNo;
+        //$pass=md5($password);
+        $check = $this->site->authenticate($surname, $coopNo);
+
+        if ($check) {
+            foreach ($check as $row) {
+                $_SESSION['id'] = $row['profileID'];
+                $_SESSION['surname'] = $row['lastname'];
+                $_SESSION['othernames'] = $row['firstname'] . " " . $row['othernames'];
+                $_SESSION['email'] = $row['emailAddress'];
+                $_SESSION['photo'] = $row['photograph'];
+                $_SESSION['coopNo'] = $row['coopNo'];
+            }
+            redirect('welcome/home');
+        } else {
+            $data['msg'] = 'Wrong Surname or Coop No';
+            $data['url'] = 'index';
+            $this->load->view('header');
+            $this->load->view('loginFail', $data);
+            $this->load->view('footer');
+        }
+    }
+    //apply for mortgage
+    public function applyMortgage(){
+        $data['profile']=$this->site->getMany('members',$_SESSION['id'],'profileID');
+        $coopNo=$this->site->getAny('members',$_SESSION['id'],'profileID','coopNo');
+        $category=$this->site->getAny('members',$_SESSION['id'],'profileID','category');
+        $conType=$this->site->getAny('members',$_SESSION['id'],'profileID','contType');
+        $data['criteria']=$this->site->getCriteria($category,$conType);
+        $data['coopNo']=$coopNo;
+        $data['balance']=$this->site->getAny('contributionBalance',$coopNo,'coopNo','balance');
+        $data['categories']=$this->site->getAll('categories');
+        $this->load->view('headerProfile');
+        $this->load->view('leftNav');
+        $this->load->view('applyMortgage',$data);
+        $this->load->view('footer');
+    }
+
+    public function home() {
+        //$data['other_details']=$this->site->getMany("fellow_other_details",$_SESSION['id'],"stud_id");
+        //$data['bm']=$this->site->getMany("fellow_bm",$_SESSION['id'],"stud_id");
+        //$data['dm']=$this->site->getMany("fellow_divisionMeeting",$_SESSION['id'],"stud_id");
+        // $data['agm']=$this->site->getMany("fellow_agm",$_SESSION['id'],"stud_id");
+        $data['profile'] = $this->site->profile($_SESSION['id']);
+        //$data['contribution']=$this->site->getMany("fellow_contribution",$_SESSION['id'],"stud_id");
+        // $data['position']=$this->site->getMany("fellow_public_position",$_SESSION['id'],"stud_id");
+        //$data['techMeeting']=$this->site->getMany("fellow_techMeeting",$_SESSION['id'],"stud_id");
+        //$data['techPaper']=$this->site->getMany("fellow_techPaper",$_SESSION['id'],"stud_id");
+        //$data['branches']=$this->site->branches();
+        //$data['division']=$this->site->divisions();
+        // $data['countries'] = $this->site->getAll("countries");
+        //$data['grade'] = $this->site->getAll("grade");
+        $data['balance'] = $this->site->getAny("contributionBalance", $_SESSION['coopNo'], "coopNo", "balance");
+        $this->load->view('headerProfile');
+        $this->load->view('leftNav');
+        $this->load->view('home', $data);
+        //$this->load->view('footer');
+    }
+//application for mortgage
+public function mortgageApply(){
+    $coopNo=$this->input->post('coopNo');
+    $date=date('Y-m-d');
+    $insert=$this->site->insertMortgageApply($coopNo,$date);
+    if($insert){
+        redirect('welcome/applySuccess', 'refresh');
+    }
+}
+
+public function applySuccess(){
+    $data['msg']='You have successfully applied for mortgage';
+    $this->load->view('headerProfile');
+    $this->load->view('applySuccess',$data);
+}
+    //contributions
+    public function contributions(){
+        $data['contribution']=$this->site->getAll("contributionFees");
+        $data['contType']=$this->site->getAny('members',$_SESSION['id'],'profileID','contType');
+        $this->load->view('headerProfile');
+        $this->load->view('leftNav');
+        $this->load->view('contributions',$data);
+        $this->load->view('footer');
+    }
+    //checks mortgage qualifications
+    public function qualification(){
+        $data['profile']=$this->site->getMany('members',$_SESSION['id'],'profileID');
+        $coopNo=$this->site->getAny('members',$_SESSION['id'],'profileID','coopNo');
+        $category=$this->site->getAny('members',$_SESSION['id'],'profileID','category');
+        $conType=$this->site->getAny('members',$_SESSION['id'],'profileID','contType');
+        $data['criteria']=$this->site->getCriteria($category,$conType);
+        $data['coopNo']=$coopNo;
+        $data['balance']=$this->site->getAny('contributionBalance',$coopNo,'coopNo','balance');
+        $data['categories']=$this->site->getAll('categories');
+        $this->load->view('headerProfile');
+        $this->load->view('leftNav');
+        $this->load->view('qualification',$data);
+        $this->load->view('footer');
+    }
+    public function checkStatus(){
+        $data['application']=$this->site->applicationStatus($_SESSION['coopNo']);
+        $this->load->view('headerProfile');
+        $this->load->view('leftNav');
+        $this->load->view('status',$data);
+        $this->load->view('footer');
+        
+    }
+    //shows the transaction page
+    public function transaction() {
+        $this->load->view('header2');
+        $this->load->view('transaction');
+        $this->load->view('footer');
+    }
+
+    public function membersProfile($nseregno) {
+        $data['details'] = $this->site->membersProfile($nseregno);
+        $this->load->view('details', $data);
+    }
+
+    public function displayUploads($name) {
+        $data['name'] = $name;
+        $this->load->view('uploads', $data);
+    }
+
+    public function uploadsApply($passport, $name) {
+
+        $config['upload_path'] = 'application/views/uploads/';
+        $config['file_name'] = $name . ".jpg";
+        $config['allowed_types'] = 'jpg';
+        $this->load->library('upload', $config);
+        $this->upload->initialize($config);
+        $this->upload->set_allowed_types('*');
+        $data['upload_data'] = '';
+        if (!$this->upload->do_upload($passport)) {
+            $data = array('msg' => $this->upload->display_errors());
+        } else { //else, set the success message
+            $data = array('msg' => "Upload success!");
+
+            $data['upload_data'] = $this->upload->data();
+        }
+    }
+
+    public function uploads() {
+
+        $type = $this->input->post('type');
+//$pics=$this->input->post('pics');
+        $config['upload_path'] = 'application/views/uploads/';
+        $config['file_name'] = $type . $_SESSION['id'] . ".jpg";
+
+        // set the filter image types
+        $config['allowed_types'] = 'jpg';
+
+        //load the upload library
+        $this->load->library('upload', $config);
+
+        $this->upload->initialize($config);
+
+        $this->upload->set_allowed_types('*');
+
+        $data['upload_data'] = '';
+        if (!$this->upload->do_upload('ssce')) {
+            $data = array('msg' => $this->upload->display_errors());
+        } else { //else, set the success message
+            $data = array('msg' => "Upload success!");
+
+            $data['upload_data'] = $this->upload->data();
+        }
+        // $this->load->view('result', $data);
+
+        /* $config['upload_path'] = './uploads';
+          $config['file_name'] = $type . $_SESSION['id'] . ".jpg";
+          $config['allowed_types'] = 'jpg';
+          $config['max_size'] = '1000';
+          $config['max_width']='1024';
+          $config['max_height']='600';
+
+
+          $this->load->library('upload', $config);
+          if (!$this->upload->do_upload()) {
+          echo "failure";
+          $data['result'] = array('error' => $this->upload->display_errors());
+          $this->load->view('result',$data);
+          // redirect('welcome/home2/'.$error, 'refresh');
+
+          } else {
+          echo "success";
+          $data['result'] = array('upload_data' => $this->upload->data());
+          $this->load->view('result',$data);
+          // redirect('welcome/home2', 'refresh');
+          } */
+    }
+
+    public function download() {
+        $this->load->helper('download');
+        $data = file_get_contents("./Training.pdf");
+        $name = 'Training Experience.pdf';
+        force_download($name, $data);
+        $data['message'] = 'File Downloaded';
+        $this->load->view('mydownloads', $data);
+    }
+
+    public function download2() {
+        $this->load->helper('download');
+        $data = file_get_contents("./undertaking.pdf");
+        $name = 'Undertaking Form.pdf';
+        force_download($name, $data);
+        $data['message'] = 'File Downloaded';
+        $this->load->view('mydownloads', $data);
+    }
+
+    public function addToCart() {
+        $nseregno = $this->input->post('nseregno');
+        //if(!empty($this->input->post('item'))){
+        $it = array_values($this->input->post('item'));
+        //}
+        $advance = $this->input->post('advance');
+        //$transid=$_SESSION['transid'];
+        $id = $_SESSION['id'];
+        $date = date('Y-m-d');
+        if (empty($_SESSION['transid'])) {
+            $transid = str_shuffle("NSE") . $this->randomString(8);
+            $_SESSION['transid'] = $transid;
+        } else {
+            $transid = $_SESSION['transid'];
+        }
+        $check = $this->site->checkMembersExistCart($nseregno, $transid);
+        if (!$check) {
+            if (!empty($advance)) {
+
+                $insert = $this->site->insertItem($nseregno, '8', $id, $advance, $transid, $date);
+            } else {
+                foreach ($it as $items) {
+                    //echo $items;
+                    //get item name
+                    $itemName = $this->site->getItemName($items);
+                    //echo "Item Name: ".$itemName;
+                    //get Item amount
+                    $itemAmount = $this->site->itemAmount($nseregno, $itemName);
+                    // echo "Item Amount: ".$itemAmount; 
+                    //Inserts into company transaction table
+                    //echo $transid;
+
+
+
+                    $insert = $this->site->insertItem($nseregno, $items, $id, $itemAmount, $transid, $date);
+                }
+            }
+            if ($insert) {
+                $data['type'] = 1;
+                $data['msg'] = 'Item Added to cart successfully';
+                $data['url'] = 'transaction';
+                //$this->load->view('header2');
+                $this->load->view('result', $data);
+                //$this->load->view('footer');
+            } else {
+                $data['type'] = 0;
+                $data['msg'] = 'Error adding to cart';
+                $data['url'] = 'index';
+                //$this->load->view('header2');
+                $this->load->view('result', $data);
+                //$this->load->view('footer');
+            }
+        } else {
+            echo "Member Dues already added to cart";
+            header("refresh: 3; url=transaction");
+            // header(“Refresh:seconds;url=“your path”);
+            //redirect('welcome/transaction','refresh');
+        }
+    }
+
+    public function contact() {
+        $this->load->view('header2');
+        $this->load->view('contact');
+        $this->load->view('footer');
+    }
+
+    //displays total amount in cart
+    public function dispTotalAmount() {
+        if (!empty($_SESSION['transid'])) {
+            $transid = $_SESSION['transid'];
+        } else {
+            $transid = '0000';
+        }
+        if (!empty($_SESSION['id'])) {
+            $compId = $_SESSION['id'];
+        } else {
+            $compId = 'o90bw2';
+        }
+        $data['totalAmount'] = $this->site->dispTotalAmount($transid, $compId);
+        $_SESSION['amount'] = $this->site->dispTotalAmount($transid, $compId);
+        $this->load->view('dispTotalAmount', $data);
+    }
+
+    public function transSummary() {
+        if (!empty($_SESSION['transid'])) {
+            $transid = $_SESSION['transid'];
+        } else {
+            $transid = '9s2890';
+        }
+        if (!empty($_SESSION['id'])) {
+            $compId = $_SESSION['id'];
+        } else {
+            $compId = 'o90bw2';
+        }
+        $data['transSummary'] = $this->site->transSummary($transid, $compId);
+        $this->load->view('transSummary', $data);
+    }
+
+    public function randomString($randStringLength) {
+        $timestring = microtime();
+        $secondsSinceEpoch = (integer) substr($timestring, strrpos($timestring, " "), 100);
+        $microseconds = (double) $timestring;
+        $seed = mt_rand(0, 1000000000) + 10000000 * $microseconds + $secondsSinceEpoch;
+        mt_srand($seed);
+        $randstring = "";
+        for ($i = 0; $i < $randStringLength; $i++) {
+            $randstring .= mt_rand(0, 9);
+        }
+        return($randstring);
+    }
+
+    public function logout() {
+        session_destroy();
+        $this->load->view('logout');
+    }
+
+    public function viewCart() {
+        if (!empty($_SESSION['transid'])) {
+            $transid = $_SESSION['transid'];
+        } else {
+            $transid = '9s2890';
+        }
+        if (!empty($_SESSION['id'])) {
+            $compId = $_SESSION['id'];
+        } else {
+            $compId = 'o90bw2';
+        }
+
+        $data['summary'] = $this->site->cartSummary($transid, $compId);
+        $this->load->view('header2');
+        $this->load->view('viewCart', $data);
+        $this->load->view('footer');
+    }
+
+    //deletes an item off the cart
+    public function deleteItem($id) {
+        $delete = $this->site->deleteItem($id);
+        if ($delete) {
+            $data['type'] = 1;
+            $data['msg'] = 'Item successfully deleted';
+            $data['url'] = 'viewCart';
+            //$this->load->view('header2');
+            $this->load->view('deleteItem', $data);
+            //$this->load->view('footer');
+        }
+    }
+
+    //individual details for members
+    public function viewDetails($regno) {
+        if (!empty($_SESSION['transid'])) {
+            $transid = $_SESSION['transid'];
+        } else {
+            $transid = '9s2890';
+        }
+        if (!empty($_SESSION['id'])) {
+            $compId = $_SESSION['id'];
+        } else {
+            $compId = 'o90bw2';
+        }
+        $data['summary'] = $this->site->viewDetails($transid, $compId, $regno);
+        //$this->load->view('header2');
+        $this->load->view('viewDetails', $data);
+        //$this->load->view('footer');
+    }
+
+    //displays profile 
+    public function profile() {
+        //if (!empty($_SESSION['id'])) {
+        $id = $_SESSION['id'];
+        $data['profile'] = $this->site->profile($id);
+        $data['employmentDetails'] = $this->site->getMany("employmentdetails", $id, "profileID");
+        $data['countries'] = $this->site->getAll("nationality");
+        $data['identity'] = $this->site->getAll("identity");
+        $data['employment'] = $this->site->getAll("employmenttype");
+        $data['categories'] = $this->site->getAll("categories");
+        $this->load->view('headerProfile2');
+        $this->load->view('leftNav');
+        $this->load->view('profile', $data);
+        $this->load->view('footer');
+        //}
+    }
+
+    //confirms profile update
+    public function confirmUpdateReg() {
+        $data['compName'] = $this->input->post('comp-name');
+        $data['compAddress'] = $this->input->post('comp-address');
+        $data['compEmail'] = $this->input->post('comp-email');
+        $data['compPhone'] = $this->input->post('comp-phone');
+        $data['contact'] = $this->input->post('contact');
+        $data['password'] = $this->input->post('comp-password');
+        $this->load->view('header2');
+        $this->load->view('confirmDetailsUpdate', $data);
+        $this->load->view('footer');
+    }
+
+}
+
+/* End of file welcome.php */
+/* Location: ./application/controllers/welcome.php */

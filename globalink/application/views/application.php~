@@ -1,0 +1,170 @@
+<script>
+//$(document).ready(function(){
+    // alert('I have read the requirements and am applying for the category of Fellowship By Application'); 
+
+//});
+</script>
+<div class="jumbotron" style="border:1px solid; margin:10px;">
+    <div class="row" style="border-radius: 0 !important;">
+        <div class="col-sm-6" style="border-right:1px solid; padding-left:40px;">
+            <div style="padding: 5px; background-color: #0073b7; color: #fff;"><h5><strong>Online Application</strong></h5></div>
+            <?php
+            $form = array('data-toggle' => "validator", 'autocomplete' => "off", 'id' => "signupform", 'role' => "form", 'method' => "POST");
+            echo form_open('welcome/confirmApply', $form);
+            ?>
+
+            <br />         
+            <div class="row">
+                <div class="col-xs-12 col-sm-6 col-md-6">
+                    <div class="form-group">
+                        <select name="title" id="title" class="form-control">
+                            <option value="">Select Title/Prefix</option>
+                            <option value="Prof.">Prof.</option>
+                            <option value="Dr.">Dr.</option>
+                            <option value="Mr.">Mr.</option>
+                            <option value="Mrs.">Mrs.</option>
+                            <option value="Miss.">Miss.</option>
+                        </select>
+                        <div class="help-block with-errors"><?php echo form_error('title'); ?></div>
+
+                    </div>
+                </div>
+                
+            </div>
+            <div class="row">
+                <div class="col-xs-12 col-sm-6 col-md-6">
+                    <div class="form-group">
+                        <input value=""
+                               name="surname"
+                               id="surname"
+                               class="form-control"
+                               placeholder="Enter Surname"
+                               required>
+                        <div class="help-block with-errors"><?php echo form_error('surname'); ?></div>
+                    </div>
+                </div>
+                <div class="col-xs-12 col-sm-6 col-md-6">
+                    <div class="form-group">
+                        <input value="" name="othernames"
+                               id="othernames"
+                               class="form-control"
+                               placeholder="Enter Othernames"
+                               required>
+                        <div class="help-block with-errors"><?php echo form_error('othernames'); ?></div>
+                    </div>
+                </div>
+                <div class="col-xs-12">
+                    <div class="form-group">
+                        <textarea name="home" id="home" placeholder="Address" class="form-control" rows="3"></textarea>
+                        <div class="help-block with-errors"><?php echo form_error('home'); ?></div>
+                    </div>
+                </div>
+
+
+            </div>
+
+            <div class="form-group">
+                <input value=""
+                       name="email"
+                       id="email"
+                       type="email"
+                       class="form-control"
+                       placeholder="Enter email"
+                       required>
+                <div class="help-block with-errors"><?php echo form_error('email'); ?></div>
+
+            </div>
+            <div class="row">
+                <div class="col-xs-12 col-sm-6 col-md-6">
+                    <div class="form-group">
+                        <input name="phone"
+                               id="phone"
+                               type="number"
+                               class="form-control"
+                               placeholder="Mobile Phone Number"
+                               data-minlength="11"
+                               required>
+                        <div class="help-block with-errors"><?php echo form_error('phone'); ?></div>
+
+                    </div>
+                </div>
+                <div class="col-xs-12 col-sm-6 col-md-6">
+                    <div class="form-group">
+                        <input name="office"
+                               id="office"
+                               type="text"
+                               class="form-control"
+                               placeholder="Office/Other Phone"
+                               id="dob"
+                               required />
+                        <div class="help-block with-errors"><?php echo form_error('office'); ?></div>
+                    </div>
+                </div>
+            </div>
+                        <div class="row">
+                <div class="col-xs-12 col-sm-6 col-md-6">
+                    <div class="form-group">
+                        <select name="nat" id="nat" class="form-control">
+                            <option value="">Select Country</option>
+                            <?php
+                            foreach ($countries as $c) {
+                                ?>
+                                <option value="<?php echo $c['country_id']; ?>"><?php echo $c['name']; ?></option>
+                            <?php } ?>
+                        </select>
+                        <div class="help-block with-errors"><?php echo form_error('nat'); ?></div>
+
+                    </div>
+                </div>
+                <div class="col-xs-12 col-sm-6 col-md-6">
+                    <div class="form-group">
+                        <select name="state" id="state" class="form-control">
+                            <option value="">Select State</option>
+                            <option value="1000">Others(Foreign)</option>
+                            <?php
+                            foreach ($states as $s) {
+                                ?>
+                                <option value="<?php echo $s['stateid']; ?>"><?php echo $s['state_name']; ?></option>
+                            <?php } ?>
+                        </select>
+                        <div class="help-block with-errors"><?php echo form_error('state'); ?></div>
+
+                    </div>
+                </div>
+            </div>
+
+
+
+            <hr class="colorgraph">
+            <div class="row">
+                <div class="col-sm-6"><input type="reset" value="Clear" class="btn btn-info btn-block btn-lg" style="background: #0073b7 !important;" tabindex="9"></div><div class="col-sm-6"><input type="submit" value="Register" class="btn btn-info btn-block btn-lg" style="background: #0073b7 !important;" tabindex="10"></div>
+
+
+            </div>
+            <?php echo form_close(); ?>
+        </div>
+        <div class="col-sm-6">
+            <div style="padding: 5px; background-color: #0073b7; color: #fff;"><h5><strong>INSTRUCTIONS</strong></h5></div>
+            <div style="margin-top: 10px;"><span><li>All fields are compulsory and must be filled</li></span> 
+                
+
+            </div>
+        </div>
+
+    </div>
+</div>
+<script  type="text/javascript">
+    var frmvalidator = new Validator("signupform");
+    frmvalidator.addValidation("title", "req", "Select Title");
+    frmvalidator.addValidation("surname", "req", "Enter Surname");
+    frmvalidator.addValidation("othernames", "req", "Enter Other Names");
+    frmvalidator.addValidation("home", "req", "Enter Home Address");
+    frmvalidator.addValidation("email", "req", "Enter Email");
+    frmvalidator.addValidation("email", "email", "Invalid Email");
+    frmvalidator.addValidation("phone", "req", "Enter Phone");
+    frmvalidator.addValidation("phone", "numeric", "Invalid Phone");
+    frmvalidator.addValidation("office", "req", "Enter Phone");
+    frmvalidator.addValidation("office", "numeric", "Invalid Phone");
+    frmvalidator.addValidation("nat", "req", "Select Country");
+    frmvalidator.addValidation("state", "req", "Select State");
+    </script>
